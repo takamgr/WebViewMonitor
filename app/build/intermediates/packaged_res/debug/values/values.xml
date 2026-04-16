@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">WebViewMonitor</string>
-    <style name="Theme.WebViewMonitor" parent="Theme.AppCompat.Light.NoActionBar">
-    </style>
-</resources>
