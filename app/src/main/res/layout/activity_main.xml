@@ -1,66 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 変更 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- 変更: URL入力エリア -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="8dp">
 
-        <EditText
-            android:id="@+id/etUrl"
+        <Button
+            android:id="@+id/btnRiku"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="https://example.com"
-            android:inputType="textUri"
-            android:singleLine="true" />
+            android:layout_marginEnd="4dp"
+            android:text="陸運局" />
 
         <Button
-            android:id="@+id/btnLoad"
-            android:layout_width="wrap_content"
+            android:id="@+id/btnKei"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="読込" />
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="軽自動車" />
 
-        <!-- 変更: 保存ボタン追加 -->
-        <Button
-            android:id="@+id/btnSave"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="保存" />
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_settings"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="設定" />
     </LinearLayout>
 
-    <!-- 変更: 保存済みURL選択Spinner -->
-    <Spinner
-        android:id="@+id/spinnerUrls"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="4dp" />
-
-    <!-- 変更: WebView -->
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- 変更: 下部コントロールエリア -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="8dp">
 
-        <!-- 変更: 監視ボタン -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -83,88 +69,6 @@
                 android:text="監視停止" />
         </LinearLayout>
 
-        <!-- 変更: 更新間隔選択 -->
-        <RadioGroup
-            android:id="@+id/rgInterval"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
-
-            <RadioButton
-                android:id="@+id/rb5sec"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:checked="true"
-                android:text="5秒" />
-
-            <RadioButton
-                android:id="@+id/rb10sec"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="30秒" />
-
-            <RadioButton
-                android:id="@+id/rb15sec"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="60秒" />
-        </RadioGroup>
-
-        <!-- 変更: 空き検出後の動作選択 -->
-        <RadioGroup
-            android:id="@+id/rgNotifyMode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
-
-            <RadioButton
-                android:id="@+id/rbNotifyOnce"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:checked="true"
-                android:text="1回通知で停止" />
-
-            <RadioButton
-                android:id="@+id/rbNotifyRepeat"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="停止まで繰り返す" />
-        </RadioGroup>
-
-        <!-- 変更: 日付範囲フィルター -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
-
-            <Button
-                android:id="@+id/btnStartDate"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="開始日（月/日）: 未設定"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btnEndDate"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="終了日（月/日）: 未設定"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <!-- 変更: インジケーター＋ステータス表示 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
