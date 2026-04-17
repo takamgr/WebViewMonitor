@@ -1,0 +1,6 @@
+4295006 マージ解決: Service化アーキテクチャ採用・VIBRATE権限追加・PiP維持
+7720136 アクセス権エラー検知・通知バー通知・バイブ追加
+fffb37b Add ForegroundService background monitoring (WIP)
+1765144 設定画面追加・PiP対応・サイト2択化・アイコン変更・アプリ名変更
+8081d50 初期実装完了：WebView監視・日付フィルター・繰り返し通知
+eb63fc7 初期実装完了：WebView監視・日付フィルター・繰り返し通知

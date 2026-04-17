@@ -3,6 +3,7 @@ package com.example.webviewmonitor
 import android.app.AlertDialog
 import android.app.PictureInPictureParams
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Rational
@@ -15,6 +16,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.view.View
 import android.view.WindowManager
 import android.util.Log
@@ -26,6 +28,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        const val ACTION_STOP_FROM_NOTIFICATION = "com.example.webviewmonitor.ACTION_STOP_FROM_NOTIFICATION"
+    }
 
     private var isMonitoring = false
     private var intervalMs: Long = 5000
@@ -46,6 +52,8 @@ class MainActivity : AppCompatActivity() {
     private var lastAlarmTime = 0L
     private var activeRingtone: Ringtone? = null
     private var selectedRingtoneUri: Uri? = null
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var screenReceiver: ScreenReceiver? = null
 
     private val reloadRunnable = object : Runnable {
         override fun run() {
@@ -197,6 +205,9 @@ class MainActivity : AppCompatActivity() {
         tvStatus.text = "監視中... 完了: 0回"
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         handler.postDelayed(reloadRunnable, intervalMs)
+        // 変更
+        startService(Intent(this, MonitoringService::class.java))
+        registerScreenReceiver()
     }
 
     private fun stopMonitoring(status: String) {
@@ -206,6 +217,10 @@ class MainActivity : AppCompatActivity() {
         handler.removeCallbacks(reloadRunnable)
         activeRingtone?.stop()
         activeRingtone = null
+        // 変更
+        stopService(Intent(this, MonitoringService::class.java))
+        unregisterScreenReceiver()
+        releaseWakeLock()
     }
 
     private fun checkHtml(bodyText: String, statuses: List<String>, currentUrl: String?) {
@@ -239,6 +254,8 @@ class MainActivity : AppCompatActivity() {
                 if (!isRepeatMode) {
                     stopMonitoring("空き検出！")
                     playAlarm()
+                    // 変更
+                    notifyVacancy()
                     // 1回通知モード：5秒後に自動停止
                     handler.postDelayed({
                         activeRingtone?.stop()
@@ -250,6 +267,8 @@ class MainActivity : AppCompatActivity() {
                         lastAlarmTime = now
                         tvStatus.text = "空き検出中！ 監視継続..."
                         playAlarm()
+                        // 変更
+                        notifyVacancy()
                     }
                 }
                 return
@@ -318,6 +337,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent?.action == ACTION_STOP_FROM_NOTIFICATION) {
+            stopMonitoring("監視停止")
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         intervalMs   = prefs.getLong("interval_ms", 5000L)
@@ -333,5 +359,43 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacks(reloadRunnable)
+    }
+
+    private fun notifyVacancy() {
+        val intent = Intent(this, MonitoringService::class.java).apply {
+            action = MonitoringService.ACTION_NOTIFY
+        }
+        startService(intent)
+    }
+
+    private fun registerScreenReceiver() {
+        if (screenReceiver != null) return
+        screenReceiver = ScreenReceiver {
+            acquireWakeLock()
+        }
+        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        registerReceiver(screenReceiver, filter)
+    }
+
+    private fun unregisterScreenReceiver() {
+        screenReceiver?.let {
+            unregisterReceiver(it)
+            screenReceiver = null
+        }
+    }
+
+    private fun acquireWakeLock() {
+        if (wakeLock?.isHeld == true) return
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "WebViewMonitor::MonitorWakeLock"
+        )
+        wakeLock?.acquire(10 * 60 * 1000L) // 最大10分
+    }
+
+    private fun releaseWakeLock() {
+        if (wakeLock?.isHeld == true) wakeLock?.release()
+        wakeLock = null
     }
 }
