@@ -69,7 +69,7 @@ class SettingsActivity : AppCompatActivity() {
 
         etUrlRiku.setText(prefs.getString("url_riku",
             "https://www.reserve.naltec.go.jp/web/ap-entry?slinky___page=forward:A1001_01"))
-        etUrlKei.setText(prefs.getString("url_kei", "https://www.keikenkyo.or.jp/"))
+        etUrlKei.setText(prefs.getString("url_kei", "https://www.kei-reserve.jp/kei_reserve/pc/wb01_login/wb01-login-input")) // 変更
 
         updateSoundButtonLabel()
 

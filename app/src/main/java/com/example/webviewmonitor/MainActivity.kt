@@ -1,7 +1,11 @@
 package com.example.webviewmonitor
 
+import android.Manifest
 import android.app.AlertDialog
 import android.app.PictureInPictureParams
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
@@ -126,6 +130,43 @@ class MainActivity : AppCompatActivity() {
                     Log.d("DEBUG", "bodyText: ${bodyText.take(200)}")
                     Log.d("DEBUG", "statuses count=${statuses.size}")
                     statuses.forEach { Log.d("DEBUG", "STATUS: $it") }
+                    // 変更
+                    val isKei = url?.contains("kei-reserve.jp") == true
+                    if (isKei && statuses.isEmpty()) {
+                        view?.evaluateJavascript("""
+                            (function() {
+                                var arr = [];
+                                var rows = document.querySelectorAll('tr');
+                                for (var r = 0; r < rows.length; r++) {
+                                    var link = rows[r].querySelector('a[class^="day"]');
+                                    if (!link) continue;
+                                    var dateText = link.innerText.trim();
+                                    var cells = rows[r].querySelectorAll('td');
+                                    for (var c = 0; c < cells.length; c++) {
+                                        var mark = cells[c].innerText.trim();
+                                        if (mark === '○' || mark === '△') {
+                                            arr.push('KEI:' + dateText + '\t' + mark);
+                                        }
+                                    }
+                                }
+                                return arr.join('\n');
+                            })()
+                        """.trimIndent()) { keiResult ->
+                            if (keiResult == null) return@evaluateJavascript
+                            val keiDecoded = keiResult
+                                .removeSurrounding("\"")
+                                .replace("\\n", "\n")
+                                .replace("\\t", "\t") // 変更
+                            Log.d("DEBUG", "keiRaw: $keiDecoded") // 変更
+                            val keiLines = keiDecoded.split("\n")
+                                .filter { it.startsWith("KEI:") }
+                            Log.d("DEBUG", "keiLines count=${keiLines.size}") // 変更
+                            if (keiLines.isNotEmpty()) {
+                                checkKeiHtml(keiLines, url)
+                            }
+                        }
+                        return@evaluateJavascript
+                    }
                     checkHtml(bodyText, statuses, currentUrl)
                 }
             }
@@ -139,7 +180,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btnKei).setOnClickListener {
-            val url = prefs.getString("url_kei", "https://www.keikenkyo.or.jp/")!!
+            val url = prefs.getString("url_kei", "https://www.kei-reserve.jp/kei_reserve/pc/wb01_login/wb01-login-input")!! // 変更
             webView.loadUrl(url)
         }
 
@@ -149,6 +190,8 @@ class MainActivity : AppCompatActivity() {
 
         btnStart.setOnClickListener { if (!isMonitoring) checkCalendarAndStart() }
         btnStop.setOnClickListener  { if (isMonitoring)  stopMonitoring("監視停止") }
+        // 変更
+        requestNotificationPermission()
     }
 
     private fun checkCalendarAndStart() {
@@ -174,7 +217,11 @@ class MainActivity : AppCompatActivity() {
             val statuses = lines.filter { it.startsWith("STATUS:") }
                 .map { it.removePrefix("STATUS:") }
 
-            if (statuses.isEmpty()) {
+            val isKei = webView.url?.contains("kei-reserve.jp") == true // 変更
+            if (isKei) {
+                // 変更：軽自動車サイトはdata-status不使用のため直接監視開始
+                startMonitoring()
+            } else if (statuses.isEmpty()) {
                 AlertDialog.Builder(this)
                     .setMessage("予約カレンダーが見つかりません。正しいページで監視を開始してください。")
                     .setPositiveButton("OK", null)
@@ -221,6 +268,41 @@ class MainActivity : AppCompatActivity() {
         stopService(Intent(this, MonitoringService::class.java))
         unregisterScreenReceiver()
         releaseWakeLock()
+    }
+
+    // 変更
+    private fun checkKeiHtml(keiLines: List<String>, currentUrl: String?) {
+        for (line in keiLines) {
+            val parts = line.removePrefix("KEI:").split("\t")
+            Log.d("DEBUG", "kei parts=$parts size=${parts.size}") // 変更
+            if (parts.size < 2) continue
+            val datePart = parts[0]
+            val monthMatch = Regex("(\\d+)月\\s*(\\d+)日").find(datePart) ?: continue // 変更
+            val month = monthMatch.groupValues[1].toIntOrNull() ?: continue // 変更
+            val day = monthMatch.groupValues[2].toIntOrNull() ?: continue // 変更
+            val now = Calendar.getInstance()
+            Log.d("DEBUG", "軽自動車空きあり: ${month}月${day}日 ${parts.getOrElse(1){""}} ${parts.getOrElse(2){""}}") // 変更
+            if (isDateInRange(month, day)) {
+                if (!isRepeatMode) {
+                    stopMonitoring("空き検出！（軽自動車）")
+                    playAlarm()
+                    notifyVacancy()
+                    handler.postDelayed({
+                        activeRingtone?.stop()
+                        activeRingtone = null
+                    }, 5000)
+                } else {
+                    val now2 = System.currentTimeMillis()
+                    if (now2 - lastAlarmTime >= 10000L) {
+                        lastAlarmTime = now2
+                        tvStatus.text = "空き検出中！（軽自動車） 監視継続..."
+                        playAlarm()
+                        notifyVacancy()
+                    }
+                }
+                return
+            }
+        }
     }
 
     private fun checkHtml(bodyText: String, statuses: List<String>, currentUrl: String?) {
@@ -397,5 +479,20 @@ class MainActivity : AppCompatActivity() {
     private fun releaseWakeLock() {
         if (wakeLock?.isHeld == true) wakeLock?.release()
         wakeLock = null
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            }
+        }
     }
 }
