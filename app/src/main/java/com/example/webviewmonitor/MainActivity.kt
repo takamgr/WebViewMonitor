@@ -2,6 +2,7 @@ package com.example.webviewmonitor
 
 import android.Manifest
 import android.app.AlertDialog
+import android.graphics.BitmapFactory
 import android.app.PictureInPictureParams
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
@@ -58,12 +59,17 @@ class MainActivity : AppCompatActivity() {
     private var selectedRingtoneUri: Uri? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var screenReceiver: ScreenReceiver? = null
+    private lateinit var radarView: RadarView // 変更
 
     private val reloadRunnable = object : Runnable {
         override fun run() {
             if (isMonitoring) {
                 webView.evaluateJavascript("window.location.reload();", null)
                 flashIndicator()
+                // 変更
+                if (radarView.visibility == View.VISIBLE) {
+                    radarView.updateStatus("監視中...", "${loadCount}回")
+                }
                 handler.postDelayed(this, intervalMs)
             }
         }
@@ -80,6 +86,7 @@ class MainActivity : AppCompatActivity() {
         btnStop       = findViewById(R.id.btnStop)
         webView       = findViewById(R.id.webView)
         indicatorView = findViewById(R.id.indicatorView)
+        radarView = findViewById(R.id.radarView) // 変更
 
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
@@ -219,8 +226,22 @@ class MainActivity : AppCompatActivity() {
 
             val isKei = webView.url?.contains("kei-reserve.jp") == true // 変更
             if (isKei) {
-                // 変更：軽自動車サイトはdata-status不使用のため直接監視開始
-                startMonitoring()
+                // 変更：カレンダーの存在確認してから監視開始
+                webView.evaluateJavascript("""
+                    (function() {
+                        return document.querySelectorAll('a[class^="day"]').length;
+                    })()
+                """.trimIndent()) { result ->
+                    val count = result?.trim()?.toIntOrNull() ?: 0
+                    if (count > 0) {
+                        startMonitoring()
+                    } else {
+                        AlertDialog.Builder(this)
+                            .setMessage("予約カレンダーが見つかりません。正しいページで監視を開始してください。")
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+                }
             } else if (statuses.isEmpty()) {
                 AlertDialog.Builder(this)
                     .setMessage("予約カレンダーが見つかりません。正しいページで監視を開始してください。")
@@ -401,12 +422,30 @@ class MainActivity : AppCompatActivity() {
         isInPictureInPictureMode: Boolean, newConfig: Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        // WebView以外の子Viewを表示/非表示切り替え
-        val root = webView.parent as? ViewGroup ?: return
-        val visibility = if (isInPictureInPictureMode) View.GONE else View.VISIBLE
-        for (i in 0 until root.childCount) {
-            val child = root.getChildAt(i)
-            if (child !== webView) child.visibility = visibility
+        if (isInPictureInPictureMode) {
+            // 変更：PiP時はRadarViewを表示、他を非表示
+            val root = webView.parent as? ViewGroup ?: return
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child !== radarView) child.visibility = View.GONE
+            }
+            radarView.visibility = View.VISIBLE
+            // 変更
+            if (isMonitoring) {
+                val isKei = webView.url?.contains("kei-reserve.jp") == true
+                val bitmapRes = if (isKei) R.drawable.radar_kei else R.drawable.radar_riku // 変更
+                val bitmap = BitmapFactory.decodeResource(resources, bitmapRes) // 変更
+                radarView.startRadar(bitmap) // 変更
+            }
+        } else {
+            // 変更：PiP終了時はWebViewを表示、RadarViewを非表示
+            radarView.stopRadar()
+            radarView.visibility = View.GONE
+            val root = webView.parent as? ViewGroup ?: return
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child !== radarView) child.visibility = View.VISIBLE
+            }
         }
     }
 
