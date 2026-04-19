@@ -164,6 +164,14 @@
             android:singleLine="true" />
 
         <Button
+            android:id="@+id/btnClearCookies"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="セッション削除（DEBUGのみ）"
+            android:backgroundTint="#FF5722" />
+
+        <Button
             android:id="@+id/btnApplyAndBack"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

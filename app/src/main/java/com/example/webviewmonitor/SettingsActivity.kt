@@ -6,6 +6,11 @@ import android.content.SharedPreferences
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.View
+import android.webkit.CookieManager
+import android.widget.Toast
 import android.widget.Button
 import android.widget.EditText
 import android.widget.RadioGroup
@@ -93,6 +98,21 @@ class SettingsActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btnApplyAndBack).setOnClickListener { saveAndFinish() }
 
+        val btnClearCookies = findViewById<Button>(R.id.btnClearCookies)
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            btnClearCookies.visibility = View.VISIBLE
+            btnClearCookies.setOnClickListener {
+                Toast.makeText(this, "10秒後にCookieを削除します", Toast.LENGTH_SHORT).show()
+                Handler(Looper.getMainLooper()).postDelayed({
+                    CookieManager.getInstance().removeAllCookies(null)
+                    CookieManager.getInstance().flush()
+                    Toast.makeText(this, "Cookieを削除しました", Toast.LENGTH_SHORT).show()
+                }, 60000L)
+            }
+        } else {
+            btnClearCookies.visibility = View.GONE
+        }
+
         btnPickSound.setOnClickListener {
             val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                 putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALL)
@@ -111,6 +131,7 @@ class SettingsActivity : AppCompatActivity() {
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
+        super.onBackPressed()
         saveAndFinish()
     }
 
