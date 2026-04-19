@@ -13,7 +13,7 @@ class MonitoringService : Service() {
     companion object {
         const val ACTION_NOTIFY = "com.example.webviewmonitor.ACTION_NOTIFY"
         const val ACTION_STOP   = "com.example.webviewmonitor.ACTION_STOP"
-        const val CHANNEL_ID    = "monitor_channel"
+        const val CHANNEL_ID    = "monitor_channel_v2"
         const val NOTIF_ID      = 1
     }
 
@@ -35,7 +35,7 @@ class MonitoringService : Service() {
             ACTION_STOP -> {
                 val stopIntent = Intent(this, MainActivity::class.java).apply {
                     action = MainActivity.ACTION_STOP_FROM_NOTIFICATION
-                    addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 }
                 startActivity(stopIntent)
                 stopSelf()
@@ -71,6 +71,8 @@ class MonitoringService : Service() {
         val ch = NotificationChannel(
             CHANNEL_ID, "監視通知", NotificationManager.IMPORTANCE_HIGH
         )
+        ch.enableVibration(true)
+        ch.vibrationPattern = longArrayOf(0, 500, 200, 500)
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
     }
 }
