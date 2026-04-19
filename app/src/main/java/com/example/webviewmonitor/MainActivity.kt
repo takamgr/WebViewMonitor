@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private var endDate: Calendar? = null
     private var isRepeatMode = false
     private var lastAlarmTime = 0L
+    private var zeroDetectCount = 0
     private var activeRingtone: Ringtone? = null
     private var selectedRingtoneUri: Uri? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -169,10 +170,28 @@ class MainActivity : AppCompatActivity() {
                                 .filter { it.startsWith("KEI:") }
                             Log.d("DEBUG", "keiLines count=${keiLines.size}") // 変更
                             if (keiLines.isNotEmpty()) {
+                                zeroDetectCount = 0
                                 checkKeiHtml(keiLines, url)
+                            } else {
+                                zeroDetectCount++
+                                val threshold = if (intervalMs == 5000L) 3 else 1
+                                if (zeroDetectCount >= threshold) {
+                                    zeroDetectCount = 0
+                                    notifySessionExpired()
+                                }
                             }
                         }
                         return@evaluateJavascript
+                    }
+                    if (statuses.isEmpty()) {
+                        zeroDetectCount++
+                        val threshold = if (intervalMs == 5000L) 3 else 1
+                        if (zeroDetectCount >= threshold) {
+                            zeroDetectCount = 0
+                            notifySessionExpired()
+                        }
+                    } else {
+                        zeroDetectCount = 0
                     }
                     checkHtml(bodyText, statuses, currentUrl)
                 }
@@ -280,6 +299,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopMonitoring(status: String) {
         isMonitoring = false
+        zeroDetectCount = 0
         tvStatus.text = status
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         handler.removeCallbacks(reloadRunnable)
@@ -485,6 +505,14 @@ class MainActivity : AppCompatActivity() {
     private fun notifyVacancy() {
         val intent = Intent(this, MonitoringService::class.java).apply {
             action = MonitoringService.ACTION_NOTIFY
+        }
+        startService(intent)
+    }
+
+    private fun notifySessionExpired() {
+        val intent = Intent(this, MonitoringService::class.java).apply {
+            action = MonitoringService.ACTION_NOTIFY
+            putExtra("message", "セッション切れの可能性があります")
         }
         startService(intent)
     }

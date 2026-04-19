@@ -28,8 +28,9 @@ class MonitoringService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_NOTIFY -> {
+                val message = intent.getStringExtra("message") ?: "空きあり！"
                 val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                nm.notify(NOTIF_ID, buildNotification("空きあり！"))
+                nm.notify(NOTIF_ID, buildNotification(message))
             }
             ACTION_STOP -> {
                 val stopIntent = Intent(this, MainActivity::class.java).apply {
