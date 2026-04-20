@@ -147,16 +147,15 @@ class MainActivity : AppCompatActivity() {
                                 var arr = [];
                                 var rows = document.querySelectorAll('tr');
                                 for (var r = 0; r < rows.length; r++) {
-                                    var link = rows[r].querySelector('a[class^="day"]');
-                                    if (!link) continue;
-                                    var dateText = link.innerText.trim();
                                     var cells = rows[r].querySelectorAll('td');
-                                    for (var c = 0; c < cells.length; c++) {
-                                        var mark = cells[c].innerText.trim();
-                                        if (mark === '○' || mark === '△') {
-                                            arr.push('KEI:' + dateText + '\t' + mark);
-                                        }
+                                    if (cells.length < 5) continue;
+                                    var dateText = cells[0].innerText.trim();
+                                    if (!dateText.match(/\d+月/)) continue;
+                                    var slots = [];
+                                    for (var c = 1; c <= 4; c++) {
+                                        slots.push(cells[c].innerText.trim());
                                     }
+                                    arr.push('KEI:' + dateText + '\t' + slots.join('\t'));
                                 }
                                 return arr.join('\n');
                             })()
@@ -320,14 +319,19 @@ class MainActivity : AppCompatActivity() {
     private fun checkKeiHtml(keiLines: List<String>, currentUrl: String?) {
         for (line in keiLines) {
             val parts = line.removePrefix("KEI:").split("\t")
-            Log.d("DEBUG", "kei parts=$parts size=${parts.size}") // 変更
+            Log.d("DEBUG", "kei parts=$parts size=${parts.size}")
             if (parts.size < 2) continue
-            val datePart = parts[0]
-            val monthMatch = Regex("(\\d+)月\\s*(\\d+)日").find(datePart) ?: continue // 変更
-            val month = monthMatch.groupValues[1].toIntOrNull() ?: continue // 変更
-            val day = monthMatch.groupValues[2].toIntOrNull() ?: continue // 変更
-            val now = Calendar.getInstance()
-            Log.d("DEBUG", "軽自動車空きあり: ${month}月${day}日 ${parts.getOrElse(1){""}} ${parts.getOrElse(2){""}}") // 変更
+
+            val slots = parts.drop(1)
+            val hasVacancy = slots.any { it.contains("○") || it.contains("△") }
+            if (!hasVacancy) continue
+
+            val datePart = parts[0].trim()
+            val monthMatch = Regex("(\\d+)月\\s*(\\d+)日").find(datePart) ?: continue
+            val month = monthMatch.groupValues[1].toIntOrNull() ?: continue
+            val day   = monthMatch.groupValues[2].toIntOrNull() ?: continue
+
+            Log.d("DEBUG", "軽自動車空きあり候補: ${month}月${day}日 slots=$slots")
             if (isDateInRange(month, day)) {
                 if (!isRepeatMode) {
                     stopMonitoring("空き検出！（軽自動車）")
