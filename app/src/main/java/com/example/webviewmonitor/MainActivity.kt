@@ -56,6 +56,8 @@ class MainActivity : AppCompatActivity() {
     private var isRepeatMode = false
     private var lastAlarmTime = 0L
     private var zeroDetectCount = 0
+    private var selectedDates: List<String> = emptyList()
+    private var selectedRounds: List<Int> = emptyList()
     private var activeRingtone: Ringtone? = null
     private var selectedRingtoneUri: Uri? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -247,22 +249,39 @@ class MainActivity : AppCompatActivity() {
             val statuses = lines.filter { it.startsWith("STATUS:") }
                 .map { it.removePrefix("STATUS:") }
 
-            val isKei = webView.url?.contains("kei-reserve.jp") == true // 変更
+            val isKei = webView.url?.contains("kei-reserve.jp") == true
             if (isKei) {
-                // 変更：カレンダーの存在確認してから監視開始
                 webView.evaluateJavascript("""
                     (function() {
-                        return document.querySelectorAll('a[class^="day"]').length;
+                        var arr = [];
+                        var rows = document.querySelectorAll('tr');
+                        for (var r = 0; r < rows.length; r++) {
+                            var cells = rows[r].querySelectorAll('td');
+                            if (cells.length < 5) continue;
+                            var dateText = cells[0].innerText.trim();
+                            if (!dateText.match(/\d+月/)) continue;
+                            var slots = [];
+                            for (var c = 1; c <= 4; c++) { slots.push(cells[c].innerText.trim()); }
+                            arr.push('KEI:' + dateText + '\t' + slots.join('\t'));
+                        }
+                        return arr.join('\n');
                     })()
-                """.trimIndent()) { result ->
-                    val count = result?.trim()?.toIntOrNull() ?: 0
-                    if (count > 0) {
-                        startMonitoring()
-                    } else {
+                """.trimIndent()) { keiResult ->
+                    if (keiResult == null) return@evaluateJavascript
+                    val keiDecoded = keiResult.removeSurrounding("\"").replace("\\n", "\n").replace("\\t", "\t")
+                    val keiLines = keiDecoded.split("\n").filter { it.startsWith("KEI:") }
+                    if (keiLines.isEmpty()) {
                         AlertDialog.Builder(this)
                             .setMessage("予約カレンダーが見つかりません。正しいページで監視を開始してください。")
                             .setPositiveButton("OK", null)
                             .show()
+                        return@evaluateJavascript
+                    }
+                    val dates = keiLines.map { it.removePrefix("KEI:").split("\t")[0].trim() }
+                    VacancyFilterDialog.show(this, dates) { selDates, selRounds ->
+                        selectedDates = selDates
+                        selectedRounds = selRounds
+                        startMonitoring()
                     }
                 }
             } else if (statuses.isEmpty()) {
@@ -271,9 +290,13 @@ class MainActivity : AppCompatActivity() {
                     .setPositiveButton("OK", null)
                     .show()
             } else {
-                // 監視開始してから即時チェック。空きあれば checkHtml 内で停止＆発火、なければタイマー継続
-                startMonitoring()
-                checkHtml(bodyText, statuses, webView.url)
+                val dates = statuses.map { it.split("\t")[0].trim() }.filter { it.contains("月") }
+                VacancyFilterDialog.show(this, dates) { selDates, selRounds ->
+                    selectedDates = selDates
+                    selectedRounds = selRounds
+                    startMonitoring()
+                    checkHtml(bodyText, statuses, webView.url)
+                }
             }
         }
     }
@@ -322,7 +345,11 @@ class MainActivity : AppCompatActivity() {
             Log.d("DEBUG", "kei parts=$parts size=${parts.size}")
             if (parts.size < 2) continue
 
-            val slots = parts.drop(1)
+            val dateStr = parts[0].trim()
+            if (selectedDates.isNotEmpty() && selectedDates.none { it == dateStr }) continue
+
+            val slots = if (selectedRounds.isEmpty()) parts.drop(1)
+                        else selectedRounds.mapNotNull { r -> parts.getOrNull(r) }
             val hasVacancy = slots.any { it.contains("○") || it.contains("△") }
             if (!hasVacancy) continue
 
@@ -374,7 +401,11 @@ class MainActivity : AppCompatActivity() {
             val parts = statusValue.split("\t")
             if (parts.size < 2) continue
 
-            val slots = parts.drop(1)
+            val dateStr = parts[0].trim()
+            if (selectedDates.isNotEmpty() && selectedDates.none { it == dateStr }) continue
+
+            val slots = if (selectedRounds.isEmpty()) parts.drop(1)
+                        else selectedRounds.mapNotNull { r -> parts.getOrNull(r) }
             val hasVacancy = slots.any { it.contains("○") || it.contains("△") }
             if (!hasVacancy) continue
 
