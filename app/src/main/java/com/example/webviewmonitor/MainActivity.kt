@@ -70,6 +70,7 @@ class MainActivity : AppCompatActivity() {
                 // 変更
                 if (radarView.visibility == View.VISIBLE) {
                     radarView.updateStatus("監視中...", "${loadCount}回")
+                    radarView.triggerReloadDot()
                 }
                 handler.postDelayed(this, intervalMs)
             }
@@ -177,6 +178,8 @@ class MainActivity : AppCompatActivity() {
                                 val threshold = if (intervalMs == 5000L) 3 else 1
                                 if (zeroDetectCount >= threshold) {
                                     zeroDetectCount = 0
+                                    if (radarView.visibility == View.VISIBLE)
+                                        radarView.setState(RadarView.RadarState.SESSION_EXPIRED)
                                     notifySessionExpired()
                                 }
                             }
@@ -188,6 +191,8 @@ class MainActivity : AppCompatActivity() {
                         val threshold = if (intervalMs == 5000L) 3 else 1
                         if (zeroDetectCount >= threshold) {
                             zeroDetectCount = 0
+                            if (radarView.visibility == View.VISIBLE)
+                                radarView.setState(RadarView.RadarState.SESSION_EXPIRED)
                             notifySessionExpired()
                         }
                     } else {
@@ -327,6 +332,8 @@ class MainActivity : AppCompatActivity() {
                 if (!isRepeatMode) {
                     stopMonitoring("空き検出！（軽自動車）")
                     playAlarm()
+                    if (radarView.visibility == View.VISIBLE)
+                        radarView.setState(RadarView.RadarState.VACANCY)
                     notifyVacancy()
                     handler.postDelayed({
                         activeRingtone?.stop()
@@ -338,6 +345,8 @@ class MainActivity : AppCompatActivity() {
                         lastAlarmTime = now2
                         tvStatus.text = "空き検出中！（軽自動車） 監視継続..."
                         playAlarm()
+                        if (radarView.visibility == View.VISIBLE)
+                            radarView.setState(RadarView.RadarState.VACANCY)
                         notifyVacancy()
                     }
                 }
@@ -377,6 +386,8 @@ class MainActivity : AppCompatActivity() {
                 if (!isRepeatMode) {
                     stopMonitoring("空き検出！")
                     playAlarm()
+                    if (radarView.visibility == View.VISIBLE)
+                        radarView.setState(RadarView.RadarState.VACANCY)
                     // 変更
                     notifyVacancy()
                     // 1回通知モード：5秒後に自動停止
@@ -390,6 +401,8 @@ class MainActivity : AppCompatActivity() {
                         lastAlarmTime = now
                         tvStatus.text = "空き検出中！ 監視継続..."
                         playAlarm()
+                        if (radarView.visibility == View.VISIBLE)
+                            radarView.setState(RadarView.RadarState.VACANCY)
                         // 変更
                         notifyVacancy()
                     }
@@ -455,7 +468,7 @@ class MainActivity : AppCompatActivity() {
                 val isKei = webView.url?.contains("kei-reserve.jp") == true
                 val bitmapRes = if (isKei) R.drawable.radar_kei else R.drawable.radar_riku // 変更
                 val bitmap = BitmapFactory.decodeResource(resources, bitmapRes) // 変更
-                radarView.startRadar(bitmap) // 変更
+                radarView.startRadar(bitmap, RadarView.RadarState.MONITORING) // 変更
             }
         } else {
             // 変更：PiP終了時はWebViewを表示、RadarViewを非表示
