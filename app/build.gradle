@@ -13,6 +13,33 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0"
+        buildConfigField "boolean", "IS_FREE", "false"
+        buildConfigField "boolean", "IS_PAID", "false"
+    }
+
+    flavorDimensions "version"
+    productFlavors {
+        free {
+            dimension "version"
+            applicationIdSuffix ".free"
+            versionNameSuffix "-free"
+            buildConfigField "boolean", "IS_FREE", "true"
+            buildConfigField "boolean", "IS_PAID", "false"
+        }
+        paid {
+            dimension "version"
+            applicationIdSuffix ".paid"
+            versionNameSuffix "-paid"
+            buildConfigField "boolean", "IS_FREE", "false"
+            buildConfigField "boolean", "IS_PAID", "true"
+        }
+        dev {
+            dimension "version"
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            buildConfigField "boolean", "IS_FREE", "false"
+            buildConfigField "boolean", "IS_PAID", "true"
+        }
     }
 
     buildTypes {
@@ -20,6 +47,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+    buildFeatures {
+        buildConfig true
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8

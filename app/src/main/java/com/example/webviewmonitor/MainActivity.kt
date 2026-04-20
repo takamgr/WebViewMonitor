@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val ACTION_STOP_FROM_NOTIFICATION = "com.example.webviewmonitor.ACTION_STOP_FROM_NOTIFICATION"
+        private const val REQUEST_SETTINGS = 2001
     }
 
     private var isMonitoring = false
@@ -58,6 +59,8 @@ class MainActivity : AppCompatActivity() {
     private var zeroDetectCount = 0
     private var selectedDates: List<String> = emptyList()
     private var selectedRounds: List<Int> = emptyList()
+    private var isCalendarLoaded = false
+    private var calendarDates: ArrayList<String> = arrayListOf()
     private var activeRingtone: Ringtone? = null
     private var selectedRingtoneUri: Uri? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -217,10 +220,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<android.widget.ImageButton>(R.id.btnSettings).setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
+            val intent = Intent(this, SettingsActivity::class.java).apply {
+                putExtra("is_calendar_loaded", isCalendarLoaded)
+                putStringArrayListExtra("calendar_dates", calendarDates)
+            }
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, REQUEST_SETTINGS)
         }
 
-        btnStart.setOnClickListener { if (!isMonitoring) checkCalendarAndStart() }
+        btnStart.setOnClickListener {
+            if (!isMonitoring) {
+                if (selectedDates.isNotEmpty()) startMonitoring()
+                else checkCalendarAndStart()
+            }
+        }
         btnStop.setOnClickListener  { if (isMonitoring)  stopMonitoring("監視停止") }
         // 変更
         requestNotificationPermission()
@@ -278,6 +291,8 @@ class MainActivity : AppCompatActivity() {
                         return@evaluateJavascript
                     }
                     val dates = keiLines.map { it.removePrefix("KEI:").split("\t")[0].trim() }
+                    isCalendarLoaded = true
+                    calendarDates = ArrayList(dates)
                     VacancyFilterDialog.show(this, dates) { selDates, selRounds ->
                         selectedDates = selDates
                         selectedRounds = selRounds
@@ -291,6 +306,8 @@ class MainActivity : AppCompatActivity() {
                     .show()
             } else {
                 val dates = statuses.map { it.split("\t")[0].trim() }.filter { it.contains("月") }
+                isCalendarLoaded = true
+                calendarDates = ArrayList(dates)
                 VacancyFilterDialog.show(this, dates) { selDates, selRounds ->
                     selectedDates = selDates
                     selectedRounds = selRounds
@@ -530,6 +547,15 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         if (intent?.action == ACTION_STOP_FROM_NOTIFICATION) {
             stopMonitoring("監視停止")
+        }
+    }
+
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_SETTINGS && resultCode == RESULT_OK && data != null) {
+            selectedDates  = data.getStringArrayListExtra("selected_dates")  ?: emptyList()
+            selectedRounds = data.getIntegerArrayListExtra("selected_rounds") ?: emptyList()
         }
     }
 

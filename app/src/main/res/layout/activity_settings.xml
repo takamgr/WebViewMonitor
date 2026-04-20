@@ -80,6 +80,14 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
+        <Button
+            android:id="@+id/btnVacancyFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="監視条件設定"
+            android:enabled="false" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

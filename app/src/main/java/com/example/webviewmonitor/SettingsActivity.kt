@@ -96,6 +96,23 @@ class SettingsActivity : AppCompatActivity() {
         btnStartDate.setOnClickListener { showDatePicker(isStart = true) }
         btnEndDate.setOnClickListener   { showDatePicker(isStart = false) }
 
+        val isCalendarLoaded = intent.getBooleanExtra("is_calendar_loaded", false)
+        val calendarDates    = intent.getStringArrayListExtra("calendar_dates") ?: arrayListOf()
+        val btnVacancyFilter = findViewById<Button>(R.id.btnVacancyFilter)
+        btnVacancyFilter.isEnabled = isCalendarLoaded
+        if (isCalendarLoaded) {
+            btnVacancyFilter.setOnClickListener {
+                VacancyFilterDialog.show(this, calendarDates) { selDates, selRounds ->
+                    val result = Intent().apply {
+                        putStringArrayListExtra("selected_dates", ArrayList(selDates))
+                        putIntegerArrayListExtra("selected_rounds", ArrayList(selRounds))
+                    }
+                    setResult(RESULT_OK, result)
+                    finish()
+                }
+            }
+        }
+
         findViewById<Button>(R.id.btnApplyAndBack).setOnClickListener { saveAndFinish() }
 
         val btnClearCookies = findViewById<Button>(R.id.btnClearCookies)
