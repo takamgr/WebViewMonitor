@@ -113,6 +113,21 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        val layoutDevMode = findViewById<View>(R.id.layoutDevMode)
+        val rgDevMode     = findViewById<RadioGroup>(R.id.rgDevMode)
+        if (BuildConfig.FLAVOR == "dev") {
+            layoutDevMode.visibility = View.VISIBLE
+            val devPrefs = getSharedPreferences("settings", MODE_PRIVATE)
+            rgDevMode.check(
+                if (devPrefs.getBoolean("dev_is_free", false)) R.id.rbDevFree else R.id.rbDevPaid
+            )
+            rgDevMode.setOnCheckedChangeListener { _, checkedId ->
+                devPrefs.edit().putBoolean("dev_is_free", checkedId == R.id.rbDevFree).apply()
+            }
+        } else {
+            layoutDevMode.visibility = View.GONE
+        }
+
         findViewById<Button>(R.id.btnApplyAndBack).setOnClickListener { saveAndFinish() }
 
         val btnClearCookies = findViewById<Button>(R.id.btnClearCookies)

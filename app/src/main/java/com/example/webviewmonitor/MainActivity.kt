@@ -637,3 +637,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+
+fun isFreeUser(context: android.content.Context): Boolean {
+    return if (BuildConfig.FLAVOR == "dev") {
+        context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+            .getBoolean("dev_is_free", false)
+    } else {
+        BuildConfig.IS_FREE
+    }
+}

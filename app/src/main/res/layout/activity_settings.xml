@@ -179,6 +179,45 @@
             android:text="セッション削除（DEBUGのみ）"
             android:backgroundTint="#FF5722" />
 
+        <LinearLayout
+            android:id="@+id/layoutDevMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="開発者：動作モード"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <RadioGroup
+                android:id="@+id/rgDevMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <RadioButton
+                    android:id="@+id/rbDevPaid"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="有料版として動作" />
+
+                <RadioButton
+                    android:id="@+id/rbDevFree"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="無料版として動作" />
+            </RadioGroup>
+        </LinearLayout>
+
         <Button
             android:id="@+id/btnApplyAndBack"
             android:layout_width="match_parent"
