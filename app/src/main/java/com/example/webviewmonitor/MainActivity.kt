@@ -567,8 +567,7 @@ class MainActivity : AppCompatActivity() {
             radarView.visibility = View.VISIBLE
             // 変更
             if (isMonitoring) {
-                val isKei = webView.url?.contains("kei-reserve.jp") == true
-                val bitmapRes = if (isKei) R.drawable.radar_kei else R.drawable.radar_riku // 変更
+                val bitmapRes = R.drawable.radar_riku
                 val bitmap = BitmapFactory.decodeResource(resources, bitmapRes) // 変更
                 radarView.startRadar(bitmap, RadarView.RadarState.MONITORING) // 変更
             }
