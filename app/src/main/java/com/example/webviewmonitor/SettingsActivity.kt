@@ -100,12 +100,14 @@ class SettingsActivity : AppCompatActivity() {
         val calendarDates    = intent.getStringArrayListExtra("calendar_dates") ?: arrayListOf()
         val btnVacancyFilter = findViewById<Button>(R.id.btnVacancyFilter)
         btnVacancyFilter.isEnabled = isCalendarLoaded
+        btnVacancyFilter.text = if (isCalendarLoaded) "監視条件設定" else "カレンダー未読込"
         if (isCalendarLoaded) {
             btnVacancyFilter.setOnClickListener {
-                VacancyFilterDialog.show(this, calendarDates) { selDates, selRounds ->
+                VacancyFilterDialog.show(this, calendarDates) { selFilter ->
+                    val json = org.json.JSONObject()
+                    selFilter.forEach { (date, rounds) -> json.put(date, org.json.JSONArray(rounds)) }
                     val result = Intent().apply {
-                        putStringArrayListExtra("selected_dates", ArrayList(selDates))
-                        putIntegerArrayListExtra("selected_rounds", ArrayList(selRounds))
+                        putExtra("selected_filter_json", json.toString())
                     }
                     setResult(RESULT_OK, result)
                     finish()

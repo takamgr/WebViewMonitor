@@ -3,6 +3,7 @@ package com.example.webviewmonitor
 import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Typeface
+import android.view.Gravity
 import android.widget.*
 
 object VacancyFilterDialog {
@@ -10,7 +11,7 @@ object VacancyFilterDialog {
     fun show(
         context: Context,
         dates: List<String>,
-        onStart: (selectedDates: List<String>, selectedRounds: List<Int>) -> Unit
+        onStart: (Map<String, List<Int>>) -> Unit
     ) {
         val density = context.resources.displayMetrics.density
 
@@ -22,86 +23,132 @@ object VacancyFilterDialog {
             )
         }
 
-        // 日付セクション
-        root.addView(TextView(context).apply {
-            text = "日付"
-            textSize = 14f
-            setTypeface(null, Typeface.BOLD)
+        val dateCheckBoxes = mutableListOf<CheckBox>()
+        val roundCheckBoxesList = mutableListOf<List<CheckBox>>()
+
+        val dateContainer = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+
+        // ヘッダー行
+        dateContainer.addView(LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(TextView(context).apply {
+                text = "日付"
+                setTypeface(null, Typeface.BOLD)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 3f)
+            })
+            for (i in 1..4) {
+                addView(TextView(context).apply {
+                    text = "R$i"
+                    setTypeface(null, Typeface.BOLD)
+                    gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                })
+            }
         })
 
-        val dateCheckBoxes = mutableListOf<CheckBox>()
-        val dateContainer = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
         dates.forEach { date ->
-            val cb = CheckBox(context).apply { text = date; isChecked = true }
-            dateCheckBoxes.add(cb)
-            dateContainer.addView(cb)
+            val roundCbs = (1..4).map {
+                CheckBox(context).apply {
+                    isChecked = false
+                    isEnabled = false
+                    layoutParams = LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                    ).also { it.gravity = Gravity.CENTER }
+                }
+            }
+
+            val dateCb = CheckBox(context).apply {
+                text = date
+                isChecked = false
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 3f)
+            }
+
+            dateCb.setOnCheckedChangeListener { _, checked ->
+                roundCbs.forEach { it.isEnabled = checked; it.isChecked = checked }
+            }
+
+            dateCheckBoxes.add(dateCb)
+            roundCheckBoxesList.add(roundCbs)
+
+            dateContainer.addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(dateCb)
+                roundCbs.forEach { addView(it) }
+            })
         }
+
         root.addView(ScrollView(context).apply {
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (280 * density).toInt()
+                LinearLayout.LayoutParams.MATCH_PARENT, (320 * density).toInt()
             )
             addView(dateContainer)
         })
 
+        // 全選択・全解除
         root.addView(LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             addView(Button(context).apply {
                 text = "全選択"
+                tag = "btn_all_select"
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { dateCheckBoxes.forEach { it.isChecked = true } }
             })
             addView(Button(context).apply {
                 text = "全解除"
+                tag = "btn_all_clear"
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { dateCheckBoxes.forEach { it.isChecked = false } }
             })
         })
 
-        // ラウンドセクション
-        root.addView(TextView(context).apply {
-            text = "ラウンド"
-            textSize = 14f
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
-        })
-
-        val roundCheckBoxes = mutableListOf<CheckBox>()
-        root.addView(LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            for (i in 1..4) {
-                val cb = CheckBox(context).apply {
-                    text = "R$i"
-                    isChecked = true
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                }
-                roundCheckBoxes.add(cb)
-                addView(cb)
-            }
-        })
-
-        root.addView(LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            addView(Button(context).apply {
-                text = "全選択"
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { roundCheckBoxes.forEach { it.isChecked = true } }
-            })
-            addView(Button(context).apply {
-                text = "全解除"
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { roundCheckBoxes.forEach { it.isChecked = false } }
-            })
-        })
-
-        AlertDialog.Builder(context)
+        val dialog = AlertDialog.Builder(context)
             .setTitle("監視条件を選択")
             .setView(root)
             .setNegativeButton("キャンセル", null)
             .setPositiveButton("監視開始") { _, _ ->
-                val selDates  = dates.filterIndexed { i, _ -> dateCheckBoxes[i].isChecked }
-                val selRounds = (1..4).filter { roundCheckBoxes[it - 1].isChecked }
-                onStart(selDates, selRounds)
+                val result = mutableMapOf<String, List<Int>>()
+                dates.forEachIndexed { i, date ->
+                    if (dateCheckBoxes[i].isChecked) {
+                        val rounds = roundCheckBoxesList[i]
+                            .mapIndexedNotNull { idx, cb -> if (cb.isChecked) idx + 1 else null }
+                        if (rounds.isNotEmpty()) result[date] = rounds
+                    }
+                }
+                onStart(result)
             }
             .show()
+
+        val btnPositive = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        val enabledColor = btnPositive.currentTextColor
+        btnPositive.isEnabled = false
+        btnPositive.setTextColor(android.graphics.Color.GRAY)
+
+        val updateButton = {
+            val anyChecked = dateCheckBoxes.any { it.isChecked }
+            btnPositive.isEnabled = anyChecked
+            btnPositive.setTextColor(if (anyChecked) enabledColor else android.graphics.Color.GRAY)
+        }
+
+        dateCheckBoxes.forEach { cb ->
+            cb.setOnCheckedChangeListener { _, checked ->
+                val idx = dateCheckBoxes.indexOf(cb)
+                roundCheckBoxesList[idx].forEach { it.isEnabled = checked; it.isChecked = checked }
+                updateButton()
+            }
+        }
+
+        // 全選択・全解除ボタンもボタン状態を更新する
+        root.findViewWithTag<android.widget.Button>("btn_all_select")?.setOnClickListener {
+            dateCheckBoxes.forEachIndexed { i, dateCb ->
+                dateCb.isChecked = true
+                roundCheckBoxesList[i].forEach { it.isEnabled = true; it.isChecked = true }
+            }
+            updateButton()
+        }
+        root.findViewWithTag<android.widget.Button>("btn_all_clear")?.setOnClickListener {
+            dateCheckBoxes.forEachIndexed { i, dateCb ->
+                dateCb.isChecked = false
+                roundCheckBoxesList[i].forEach { it.isEnabled = false; it.isChecked = false }
+            }
+            updateButton()
+        }
     }
 }

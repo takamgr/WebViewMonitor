@@ -57,8 +57,7 @@ class MainActivity : AppCompatActivity() {
     private var isRepeatMode = false
     private var lastAlarmTime = 0L
     private var zeroDetectCount = 0
-    private var selectedDates: List<String> = emptyList()
-    private var selectedRounds: List<Int> = emptyList()
+    private var selectedFilter: Map<String, List<Int>> = emptyMap()
     private var isCalendarLoaded = false
     private var calendarDates: ArrayList<String> = arrayListOf()
     private var activeRingtone: Ringtone? = null
@@ -98,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
+        webView.settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
@@ -220,17 +220,54 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<android.widget.ImageButton>(R.id.btnSettings).setOnClickListener {
-            val intent = Intent(this, SettingsActivity::class.java).apply {
-                putExtra("is_calendar_loaded", isCalendarLoaded)
-                putStringArrayListExtra("calendar_dates", calendarDates)
+            val isKei = webView.url?.contains("kei-reserve.jp") == true
+            val js = if (isKei) """
+                (function() {
+                    var arr = [];
+                    var rows = document.querySelectorAll('tr');
+                    for (var r = 0; r < rows.length; r++) {
+                        var cells = rows[r].querySelectorAll('td');
+                        if (cells.length < 5) continue;
+                        var dateText = cells[0].innerText.trim();
+                        if (dateText.match(/\d+月/)) arr.push(dateText);
+                    }
+                    return arr.join('\n');
+                })()
+            """.trimIndent() else """
+                (function() {
+                    var els = document.querySelectorAll('[data-status]');
+                    var arr = [];
+                    for (var i = 0; i < els.length; i++) {
+                        var parts = els[i].getAttribute('data-status').split('\t');
+                        var dateText = parts[0].trim();
+                        if (dateText.match(/\d+月/)) arr.push(dateText);
+                    }
+                    return arr.join('\n');
+                })()
+            """.trimIndent()
+            webView.evaluateJavascript(js) { result ->
+                val dates = (result ?: "")
+                    .removeSurrounding("\"")
+                    .replace("\\n", "\n")
+                    .split("\n")
+                    .filter { it.isNotBlank() && it.contains("月") }
+                val loaded = dates.isNotEmpty()
+                if (loaded) {
+                    isCalendarLoaded = true
+                    calendarDates = ArrayList(dates)
+                }
+                val intent = Intent(this, SettingsActivity::class.java).apply {
+                    putExtra("is_calendar_loaded", loaded)
+                    putStringArrayListExtra("calendar_dates", ArrayList(dates))
+                }
+                @Suppress("DEPRECATION")
+                startActivityForResult(intent, REQUEST_SETTINGS)
             }
-            @Suppress("DEPRECATION")
-            startActivityForResult(intent, REQUEST_SETTINGS)
         }
 
         btnStart.setOnClickListener {
             if (!isMonitoring) {
-                if (selectedDates.isNotEmpty()) startMonitoring()
+                if (selectedFilter.isNotEmpty()) startMonitoring()
                 else checkCalendarAndStart()
             }
         }
@@ -293,9 +330,8 @@ class MainActivity : AppCompatActivity() {
                     val dates = keiLines.map { it.removePrefix("KEI:").split("\t")[0].trim() }
                     isCalendarLoaded = true
                     calendarDates = ArrayList(dates)
-                    VacancyFilterDialog.show(this, dates) { selDates, selRounds ->
-                        selectedDates = selDates
-                        selectedRounds = selRounds
+                    VacancyFilterDialog.show(this, dates) { selFilter ->
+                        selectedFilter = selFilter
                         startMonitoring()
                     }
                 }
@@ -308,9 +344,8 @@ class MainActivity : AppCompatActivity() {
                 val dates = statuses.map { it.split("\t")[0].trim() }.filter { it.contains("月") }
                 isCalendarLoaded = true
                 calendarDates = ArrayList(dates)
-                VacancyFilterDialog.show(this, dates) { selDates, selRounds ->
-                    selectedDates = selDates
-                    selectedRounds = selRounds
+                VacancyFilterDialog.show(this, dates) { selFilter ->
+                    selectedFilter = selFilter
                     startMonitoring()
                     checkHtml(bodyText, statuses, webView.url)
                 }
@@ -363,10 +398,11 @@ class MainActivity : AppCompatActivity() {
             if (parts.size < 2) continue
 
             val dateStr = parts[0].trim()
-            if (selectedDates.isNotEmpty() && selectedDates.none { it == dateStr }) continue
+            val allowedRounds = selectedFilter[dateStr]
+            if (selectedFilter.isNotEmpty() && allowedRounds == null) continue
 
-            val slots = if (selectedRounds.isEmpty()) parts.drop(1)
-                        else selectedRounds.mapNotNull { r -> parts.getOrNull(r) }
+            val slots = if (allowedRounds == null || allowedRounds.isEmpty()) parts.drop(1)
+                        else allowedRounds.mapNotNull { r -> parts.getOrNull(r) }
             val hasVacancy = slots.any { it.contains("○") || it.contains("△") }
             if (!hasVacancy) continue
 
@@ -419,10 +455,11 @@ class MainActivity : AppCompatActivity() {
             if (parts.size < 2) continue
 
             val dateStr = parts[0].trim()
-            if (selectedDates.isNotEmpty() && selectedDates.none { it == dateStr }) continue
+            val allowedRounds = selectedFilter[dateStr]
+            if (selectedFilter.isNotEmpty() && allowedRounds == null) continue
 
-            val slots = if (selectedRounds.isEmpty()) parts.drop(1)
-                        else selectedRounds.mapNotNull { r -> parts.getOrNull(r) }
+            val slots = if (allowedRounds == null || allowedRounds.isEmpty()) parts.drop(1)
+                        else allowedRounds.mapNotNull { r -> parts.getOrNull(r) }
             val hasVacancy = slots.any { it.contains("○") || it.contains("△") }
             if (!hasVacancy) continue
 
@@ -554,8 +591,16 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_SETTINGS && resultCode == RESULT_OK && data != null) {
-            selectedDates  = data.getStringArrayListExtra("selected_dates")  ?: emptyList()
-            selectedRounds = data.getIntegerArrayListExtra("selected_rounds") ?: emptyList()
+            val jsonStr = data.getStringExtra("selected_filter_json")
+            if (jsonStr != null) {
+                val json = org.json.JSONObject(jsonStr)
+                val map = mutableMapOf<String, List<Int>>()
+                for (key in json.keys()) {
+                    val arr = json.getJSONArray(key)
+                    map[key] = (0 until arr.length()).map { arr.getInt(it) }
+                }
+                selectedFilter = map
+            }
         }
     }
 
