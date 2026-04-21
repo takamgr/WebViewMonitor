@@ -220,54 +220,63 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<android.widget.ImageButton>(R.id.btnSettings).setOnClickListener {
-            val isKei = webView.url?.contains("kei-reserve.jp") == true
-            val js = if (isKei) """
-                (function() {
-                    var arr = [];
-                    var rows = document.querySelectorAll('tr');
-                    for (var r = 0; r < rows.length; r++) {
-                        var cells = rows[r].querySelectorAll('td');
-                        if (cells.length < 5) continue;
-                        var dateText = cells[0].innerText.trim();
-                        if (dateText.match(/\d+月/)) arr.push(dateText);
-                    }
-                    return arr.join('\n');
-                })()
-            """.trimIndent() else """
-                (function() {
-                    var els = document.querySelectorAll('[data-status]');
-                    var arr = [];
-                    for (var i = 0; i < els.length; i++) {
-                        var parts = els[i].getAttribute('data-status').split('\t');
-                        var dateText = parts[0].trim();
-                        if (dateText.match(/\d+月/)) arr.push(dateText);
-                    }
-                    return arr.join('\n');
-                })()
-            """.trimIndent()
-            webView.evaluateJavascript(js) { result ->
-                val dates = (result ?: "")
-                    .removeSurrounding("\"")
-                    .replace("\\n", "\n")
-                    .split("\n")
-                    .filter { it.isNotBlank() && it.contains("月") }
-                val loaded = dates.isNotEmpty()
-                if (loaded) {
-                    isCalendarLoaded = true
-                    calendarDates = ArrayList(dates)
-                }
+            if (isFreeUser(this)) {
                 val intent = Intent(this, SettingsActivity::class.java).apply {
-                    putExtra("is_calendar_loaded", loaded)
-                    putStringArrayListExtra("calendar_dates", ArrayList(dates))
+                    putExtra("is_calendar_loaded", false)
                 }
                 @Suppress("DEPRECATION")
                 startActivityForResult(intent, REQUEST_SETTINGS)
+            } else {
+                val isKei = webView.url?.contains("kei-reserve.jp") == true
+                val js = if (isKei) """
+                    (function() {
+                        var arr = [];
+                        var rows = document.querySelectorAll('tr');
+                        for (var r = 0; r < rows.length; r++) {
+                            var cells = rows[r].querySelectorAll('td');
+                            if (cells.length < 5) continue;
+                            var dateText = cells[0].innerText.trim();
+                            if (dateText.match(/\d+月/)) arr.push(dateText);
+                        }
+                        return arr.join('\n');
+                    })()
+                """.trimIndent() else """
+                    (function() {
+                        var els = document.querySelectorAll('[data-status]');
+                        var arr = [];
+                        for (var i = 0; i < els.length; i++) {
+                            var parts = els[i].getAttribute('data-status').split('\t');
+                            var dateText = parts[0].trim();
+                            if (dateText.match(/\d+月/)) arr.push(dateText);
+                        }
+                        return arr.join('\n');
+                    })()
+                """.trimIndent()
+                webView.evaluateJavascript(js) { result ->
+                    val dates = (result ?: "")
+                        .removeSurrounding("\"")
+                        .replace("\\n", "\n")
+                        .split("\n")
+                        .filter { it.isNotBlank() && it.contains("月") }
+                    val loaded = dates.isNotEmpty()
+                    if (loaded) {
+                        isCalendarLoaded = true
+                        calendarDates = ArrayList(dates)
+                    }
+                    val intent = Intent(this, SettingsActivity::class.java).apply {
+                        putExtra("is_calendar_loaded", loaded)
+                        putStringArrayListExtra("calendar_dates", ArrayList(dates))
+                    }
+                    @Suppress("DEPRECATION")
+                    startActivityForResult(intent, REQUEST_SETTINGS)
+                }
             }
         }
 
         btnStart.setOnClickListener {
             if (!isMonitoring) {
-                if (selectedFilter.isNotEmpty()) startMonitoring()
+                if (isFreeUser(this)) startMonitoring()
+                else if (selectedFilter.isNotEmpty()) startMonitoring()
                 else checkCalendarAndStart()
             }
         }
