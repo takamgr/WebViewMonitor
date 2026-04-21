@@ -430,7 +430,8 @@ class MainActivity : AppCompatActivity() {
             val day   = monthMatch.groupValues[2].toIntOrNull() ?: continue
 
             Log.d("DEBUG", "軽自動車空きあり候補: ${month}月${day}日 slots=$slots")
-            if (isDateInRange(month, day)) {
+            if (isFreeUser(this) && !isDateInRange(month, day)) continue
+            if (true) {
                 if (!isRepeatMode) {
                     stopMonitoring("空き検出！（軽自動車）")
                     playAlarm()
@@ -488,7 +489,8 @@ class MainActivity : AppCompatActivity() {
 
             Log.d("DEBUG", "空きあり候補: ${month}月${day}日 slots=$slots")
 
-            if (isDateInRange(month, day)) {
+            if (isFreeUser(this) && !isDateInRange(month, day)) continue
+            if (true) {
                 Log.d("DEBUG", "空き検出: ${month}月${day}日")
                 if (!isRepeatMode) {
                     stopMonitoring("空き検出！")
