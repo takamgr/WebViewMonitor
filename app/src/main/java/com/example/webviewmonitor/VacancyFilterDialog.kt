@@ -11,7 +11,7 @@ object VacancyFilterDialog {
     fun show(
         context: Context,
         dates: List<String>,
-        onStart: (Map<String, List<Int>>) -> Unit
+        onConfirm: (Map<String, List<Int>>) -> Unit
     ) {
         val density = context.resources.displayMetrics.density
 
@@ -103,7 +103,7 @@ object VacancyFilterDialog {
             .setTitle("監視条件を選択")
             .setView(root)
             .setNegativeButton("キャンセル", null)
-            .setPositiveButton("監視開始") { _, _ ->
+            .setPositiveButton("決定") { _, _ ->
                 val result = mutableMapOf<String, List<Int>>()
                 dates.forEachIndexed { i, date ->
                     if (dateCheckBoxes[i].isChecked) {
@@ -112,7 +112,7 @@ object VacancyFilterDialog {
                         if (rounds.isNotEmpty()) result[date] = rounds
                     }
                 }
-                onStart(result)
+                onConfirm(result)
             }
             .show()
 

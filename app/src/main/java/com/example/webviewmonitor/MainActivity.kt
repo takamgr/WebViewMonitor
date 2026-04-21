@@ -337,7 +337,6 @@ class MainActivity : AppCompatActivity() {
                     if (!isFreeUser(this)) {
                         VacancyFilterDialog.show(this, dates) { selFilter ->
                             selectedFilter = selFilter
-                            startMonitoring()
                         }
                     } else {
                         startMonitoring()
@@ -355,8 +354,6 @@ class MainActivity : AppCompatActivity() {
                 if (!isFreeUser(this)) {
                     VacancyFilterDialog.show(this, dates) { selFilter ->
                         selectedFilter = selFilter
-                        startMonitoring()
-                        checkHtml(bodyText, statuses, webView.url)
                     }
                 } else {
                     startMonitoring()
