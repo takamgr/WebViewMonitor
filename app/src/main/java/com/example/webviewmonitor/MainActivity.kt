@@ -65,6 +65,7 @@ class MainActivity : AppCompatActivity() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var screenReceiver: ScreenReceiver? = null
     private lateinit var radarView: RadarView // 変更
+    private var sessionExpiredWhileMonitoring = false
 
     private val reloadRunnable = object : Runnable {
         override fun run() {
@@ -389,6 +390,7 @@ class MainActivity : AppCompatActivity() {
     private fun stopMonitoring(status: String) {
         isMonitoring = false
         zeroDetectCount = 0
+        sessionExpiredWhileMonitoring = false
         tvStatus.text = status
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         handler.removeCallbacks(reloadRunnable)
@@ -616,6 +618,14 @@ class MainActivity : AppCompatActivity() {
             }
             selectedFilter = map
         }
+        if (isMonitoring && sessionExpiredWhileMonitoring) {
+            stopMonitoring("セッション切れ")
+            AlertDialog.Builder(this)
+                .setTitle("セッション切れ")
+                .setMessage("セッションが切れた可能性があります。カレンダーを再読み込みしてから監視を再開してください。")
+                .setPositiveButton("OK", null)
+                .show()
+        }
         updateStartButton()
     }
 
@@ -632,6 +642,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun notifySessionExpired() {
+        sessionExpiredWhileMonitoring = true
         val intent = Intent(this, MonitoringService::class.java).apply {
             action = MonitoringService.ACTION_NOTIFY
             putExtra("message", "セッション切れの可能性があります")
