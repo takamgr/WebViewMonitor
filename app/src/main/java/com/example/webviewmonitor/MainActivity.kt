@@ -614,17 +614,24 @@ class MainActivity : AppCompatActivity() {
         endDate      = if (endMs != -1L) Calendar.getInstance().apply { timeInMillis = endMs } else null
         val uriStr   = prefs.getString("ringtone_uri", null)
         selectedRingtoneUri = if (uriStr != null) Uri.parse(uriStr) else null
-        val filterJson = getSharedPreferences("settings", MODE_PRIVATE).getString("selected_filter_json", null)
-        if (filterJson != null) {
-            val json = org.json.JSONObject(filterJson)
-            val map = mutableMapOf<String, List<Int>>()
-            for (key in json.keys()) {
-                val arr = json.getJSONArray(key)
-                map[key] = (0 until arr.length()).map { arr.getInt(it) }
-            }
-            selectedFilter = map
-        }
         updateStartButton()
+    }
+
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == RESULT_OK) {
+            val filterJson = data?.getStringExtra("selected_filter_json")
+            if (filterJson != null) {
+                val json = org.json.JSONObject(filterJson)
+                val map = mutableMapOf<String, List<Int>>()
+                for (key in json.keys()) {
+                    val arr = json.getJSONArray(key)
+                    map[key] = (0 until arr.length()).map { arr.getInt(it) }
+                }
+                selectedFilter = map
+            }
+        }
     }
 
     override fun onDestroy() {
