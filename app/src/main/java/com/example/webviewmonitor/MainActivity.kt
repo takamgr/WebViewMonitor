@@ -275,12 +275,13 @@ class MainActivity : AppCompatActivity() {
 
         btnStart.setOnClickListener {
             if (!isMonitoring) {
-                if (isFreeUser(this)) startMonitoring()
+                if (isFreeUser(this)) checkCalendarAndStart()
                 else if (selectedFilter.isNotEmpty()) startMonitoring()
                 else checkCalendarAndStart()
             }
         }
         btnStop.setOnClickListener  { if (isMonitoring)  stopMonitoring("監視停止") }
+        updateStartButton()
         // 変更
         requestNotificationPermission()
     }
@@ -339,8 +340,12 @@ class MainActivity : AppCompatActivity() {
                     val dates = keiLines.map { it.removePrefix("KEI:").split("\t")[0].trim() }
                     isCalendarLoaded = true
                     calendarDates = ArrayList(dates)
-                    VacancyFilterDialog.show(this, dates) { selFilter ->
-                        selectedFilter = selFilter
+                    if (!isFreeUser(this)) {
+                        VacancyFilterDialog.show(this, dates) { selFilter ->
+                            selectedFilter = selFilter
+                            startMonitoring()
+                        }
+                    } else {
                         startMonitoring()
                     }
                 }
@@ -353,8 +358,13 @@ class MainActivity : AppCompatActivity() {
                 val dates = statuses.map { it.split("\t")[0].trim() }.filter { it.contains("月") }
                 isCalendarLoaded = true
                 calendarDates = ArrayList(dates)
-                VacancyFilterDialog.show(this, dates) { selFilter ->
-                    selectedFilter = selFilter
+                if (!isFreeUser(this)) {
+                    VacancyFilterDialog.show(this, dates) { selFilter ->
+                        selectedFilter = selFilter
+                        startMonitoring()
+                        checkHtml(bodyText, statuses, webView.url)
+                    }
+                } else {
                     startMonitoring()
                     checkHtml(bodyText, statuses, webView.url)
                 }
@@ -623,6 +633,7 @@ class MainActivity : AppCompatActivity() {
         endDate      = if (endMs != -1L) Calendar.getInstance().apply { timeInMillis = endMs } else null
         val uriStr   = prefs.getString("ringtone_uri", null)
         selectedRingtoneUri = if (uriStr != null) Uri.parse(uriStr) else null
+        updateStartButton()
     }
 
     override fun onDestroy() {
@@ -674,6 +685,19 @@ class MainActivity : AppCompatActivity() {
     private fun releaseWakeLock() {
         if (wakeLock?.isHeld == true) wakeLock?.release()
         wakeLock = null
+    }
+
+    private fun updateStartButton() {
+        if (isFreeUser(this)) {
+            val startMs = prefs.getLong("start_date_ms", -1L)
+            val endMs   = prefs.getLong("end_date_ms",   -1L)
+            val enabled = startMs != -1L && endMs != -1L
+            btnStart.isEnabled = enabled
+            btnStart.alpha = if (enabled) 1f else 0.4f
+        } else {
+            btnStart.isEnabled = true
+            btnStart.alpha = 1f
+        }
     }
 
     private fun requestNotificationPermission() {

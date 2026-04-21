@@ -48,18 +48,31 @@
         </RadioGroup>
 
         <TextView
+            android:id="@+id/tvDateRangeSectionLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="日付範囲"
+            android:text="監視期間設定"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="4dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvDateRangeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="監視期間を指定"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone" />
 
         <LinearLayout
+            android:id="@+id/layoutDateRange"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="4dp">
 
             <Button
                 android:id="@+id/btnStartDate"
@@ -79,6 +92,24 @@
                 android:text="終了日（月/日）: 未設定"
                 android:textSize="12sp" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvDateRangeHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="監視期間設定をするには、メイン画面でカレンダーページを開いてください"
+            android:textColor="#888888"
+            android:layout_marginBottom="24dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvVacancyFilterLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="監視条件を設定"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
 
         <Button
             android:id="@+id/btnVacancyFilter"

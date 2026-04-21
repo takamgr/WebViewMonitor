@@ -98,12 +98,36 @@ class SettingsActivity : AppCompatActivity() {
 
         val isCalendarLoaded = intent.getBooleanExtra("is_calendar_loaded", false)
         val calendarDates    = intent.getStringArrayListExtra("calendar_dates") ?: arrayListOf()
-        val btnVacancyFilter = findViewById<Button>(R.id.btnVacancyFilter)
+        val btnVacancyFilter     = findViewById<Button>(R.id.btnVacancyFilter)
+        val tvDateRangeLabel     = findViewById<android.widget.TextView>(R.id.tvDateRangeLabel)
+        val layoutDateRange      = findViewById<android.widget.LinearLayout>(R.id.layoutDateRange)
+        val tvVacancyFilterLabel = findViewById<android.widget.TextView>(R.id.tvVacancyFilterLabel)
+        val tvDateRangeHint         = findViewById<android.widget.TextView>(R.id.tvDateRangeHint)
+        val tvDateRangeSectionLabel = findViewById<android.widget.TextView>(R.id.tvDateRangeSectionLabel)
         if (isFreeUser(this)) {
-            btnVacancyFilter.visibility = View.GONE
+            tvDateRangeSectionLabel.visibility = View.VISIBLE
+            tvDateRangeLabel.visibility        = View.GONE
+            layoutDateRange.visibility         = View.VISIBLE
+            tvVacancyFilterLabel.visibility    = View.GONE
+            btnVacancyFilter.visibility        = View.GONE
+            if (isCalendarLoaded) {
+                btnStartDate.isEnabled     = true
+                btnEndDate.isEnabled       = true
+                tvDateRangeHint.visibility = View.GONE
+            } else {
+                btnStartDate.isEnabled     = false
+                btnEndDate.isEnabled       = false
+                tvDateRangeHint.visibility = View.VISIBLE
+            }
         } else {
+            tvDateRangeSectionLabel.visibility = View.GONE
+            tvDateRangeLabel.visibility        = View.GONE
+            layoutDateRange.visibility         = View.GONE
+            tvDateRangeHint.visibility         = View.GONE
+            tvVacancyFilterLabel.visibility    = View.VISIBLE
+            btnVacancyFilter.visibility        = View.VISIBLE
             btnVacancyFilter.isEnabled = isCalendarLoaded
-            btnVacancyFilter.text = if (isCalendarLoaded) "監視条件設定" else "カレンダー未読込"
+            btnVacancyFilter.text = if (isCalendarLoaded) "監視条件を設定" else "カレンダー未読込"
             if (isCalendarLoaded) {
                 btnVacancyFilter.setOnClickListener {
                     VacancyFilterDialog.show(this, calendarDates) { selFilter ->
