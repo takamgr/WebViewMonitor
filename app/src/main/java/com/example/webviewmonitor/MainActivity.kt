@@ -270,7 +270,7 @@ class MainActivity : AppCompatActivity() {
         btnStart.setOnClickListener {
             if (!isMonitoring) {
                 if (isFreeUser(this)) checkCalendarAndStart()
-                else if (selectedFilter.isNotEmpty()) startMonitoring()
+                else if (selectedFilter.isNotEmpty()) checkCalendarAndStart()
                 else checkCalendarAndStart()
             }
         }
