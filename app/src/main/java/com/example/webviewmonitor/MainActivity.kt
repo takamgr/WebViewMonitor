@@ -335,8 +335,12 @@ class MainActivity : AppCompatActivity() {
                     isCalendarLoaded = true
                     calendarDates = ArrayList(dates)
                     if (!isFreeUser(this)) {
-                        VacancyFilterDialog.show(this, dates) { selFilter ->
-                            selectedFilter = selFilter
+                        if (selectedFilter.isNotEmpty()) {
+                            startMonitoring()
+                        } else {
+                            VacancyFilterDialog.show(this, dates) { selFilter ->
+                                selectedFilter = selFilter
+                            }
                         }
                     } else {
                         startMonitoring()
@@ -352,8 +356,12 @@ class MainActivity : AppCompatActivity() {
                 isCalendarLoaded = true
                 calendarDates = ArrayList(dates)
                 if (!isFreeUser(this)) {
-                    VacancyFilterDialog.show(this, dates) { selFilter ->
-                        selectedFilter = selFilter
+                    if (selectedFilter.isNotEmpty()) {
+                        startMonitoring()
+                    } else {
+                        VacancyFilterDialog.show(this, dates) { selFilter ->
+                            selectedFilter = selFilter
+                        }
                     }
                 } else {
                     startMonitoring()
