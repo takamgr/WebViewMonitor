@@ -133,11 +133,9 @@ class SettingsActivity : AppCompatActivity() {
                     VacancyFilterDialog.show(this, calendarDates) { selFilter ->
                         val json = org.json.JSONObject()
                         selFilter.forEach { (date, rounds) -> json.put(date, org.json.JSONArray(rounds)) }
-                        val result = Intent().apply {
-                            putExtra("selected_filter_json", json.toString())
-                        }
-                        setResult(RESULT_OK, result)
-                        finish()
+                        getSharedPreferences("settings", MODE_PRIVATE).edit()
+                            .putString("selected_filter_json", json.toString())
+                            .apply()
                     }
                 }
             }

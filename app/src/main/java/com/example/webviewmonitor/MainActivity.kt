@@ -596,23 +596,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_SETTINGS && resultCode == RESULT_OK && data != null) {
-            val jsonStr = data.getStringExtra("selected_filter_json")
-            if (jsonStr != null) {
-                val json = org.json.JSONObject(jsonStr)
-                val map = mutableMapOf<String, List<Int>>()
-                for (key in json.keys()) {
-                    val arr = json.getJSONArray(key)
-                    map[key] = (0 until arr.length()).map { arr.getInt(it) }
-                }
-                selectedFilter = map
-            }
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         intervalMs   = prefs.getLong("interval_ms", 5000L)
@@ -623,6 +606,16 @@ class MainActivity : AppCompatActivity() {
         endDate      = if (endMs != -1L) Calendar.getInstance().apply { timeInMillis = endMs } else null
         val uriStr   = prefs.getString("ringtone_uri", null)
         selectedRingtoneUri = if (uriStr != null) Uri.parse(uriStr) else null
+        val filterJson = getSharedPreferences("settings", MODE_PRIVATE).getString("selected_filter_json", null)
+        if (filterJson != null) {
+            val json = org.json.JSONObject(filterJson)
+            val map = mutableMapOf<String, List<Int>>()
+            for (key in json.keys()) {
+                val arr = json.getJSONArray(key)
+                map[key] = (0 until arr.length()).map { arr.getInt(it) }
+            }
+            selectedFilter = map
+        }
         updateStartButton()
     }
 
